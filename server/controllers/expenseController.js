@@ -3,7 +3,7 @@ import Expense from '../models/expenseModel.js';
 
 // @desc Add a new expense
 // @route POST /api/expense/add or POST /api/expense or POST /api/expenses
-export const addExpense = async (req, res) => {
+export const addExpense = async (req, res, next) => {
   try {
     const { category, description, title, item, amount, date, paymentMethod, notes, icon } = req.body;
     const finalDescription = description || title || item;
@@ -41,16 +41,13 @@ export const addExpense = async (req, res) => {
     });
   } catch (error) {
     console.error('Add expense error:', error);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Error adding expense',
-    });
+    return next(error);
   }
 };
 
 // @desc Get all expenses for authenticated user
 // @route GET /api/expense/get or GET /api/expense or GET /api/expenses
-export const getAllExpenses = async (req, res) => {
+export const getAllExpenses = async (req, res, next) => {
   try {
     const { category, startDate, endDate, search, sortBy = 'date', sortOrder = 'desc', limit, page } = req.query;
 
@@ -107,16 +104,13 @@ export const getAllExpenses = async (req, res) => {
     });
   } catch (error) {
     console.error('Get expenses error:', error);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Error fetching expense records',
-    });
+    return next(error);
   }
 };
 
 // @desc Get expense summary & category breakdown
 // @route GET /api/expense/summary
-export const getExpenseSummary = async (req, res) => {
+export const getExpenseSummary = async (req, res, next) => {
   try {
     const userId = req.user._id;
     const now = new Date();
@@ -179,16 +173,13 @@ export const getExpenseSummary = async (req, res) => {
     });
   } catch (error) {
     console.error('Expense summary error:', error);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Error calculating expense summary',
-    });
+    return next(error);
   }
 };
 
 // @desc Update an existing expense
 // @route PUT /api/expense/:id
-export const updateExpense = async (req, res) => {
+export const updateExpense = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { category, description, title, item, amount, date, paymentMethod, notes, icon } = req.body;
@@ -229,16 +220,13 @@ export const updateExpense = async (req, res) => {
     });
   } catch (error) {
     console.error('Update expense error:', error);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Error updating expense record',
-    });
+    return next(error);
   }
 };
 
 // @desc Delete an expense
 // @route DELETE /api/expense/:id
-export const deleteExpense = async (req, res) => {
+export const deleteExpense = async (req, res, next) => {
   try {
     const { id } = req.params;
     const deleted = await Expense.findOneAndDelete({ _id: id, userId: req.user._id });
@@ -257,16 +245,13 @@ export const deleteExpense = async (req, res) => {
     });
   } catch (error) {
     console.error('Delete expense error:', error);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Error deleting expense record',
-    });
+    return next(error);
   }
 };
 
 // @desc Download all expenses as an Excel (.xlsx) file
 // @route GET /api/expense/download/excel or /api/expense/downloadexcel
-export const downloadExpenseExcel = async (req, res) => {
+export const downloadExpenseExcel = async (req, res, next) => {
   try {
     const expenses = await Expense.find({ userId: req.user._id }).sort({ date: -1 });
 
@@ -291,9 +276,6 @@ export const downloadExpenseExcel = async (req, res) => {
     return res.send(buffer);
   } catch (error) {
     console.error('Download expense excel error:', error);
-    return res.status(500).json({
-      success: false,
-      message: error.message || 'Error generating expense spreadsheet',
-    });
+    return next(error);
   }
 };
