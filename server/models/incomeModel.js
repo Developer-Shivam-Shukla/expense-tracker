@@ -1,16 +1,16 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const incomeSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
       index: true,
     },
     icon: {
       type: String,
-      default: 'Wallet',
+      default: "Wallet",
     },
     source: {
       type: String,
@@ -18,18 +18,18 @@ const incomeSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      required: [true, 'Please provide an income description/source'],
+      required: [true, "Please provide an income description/source"],
       trim: true,
     },
     amount: {
       type: Number,
-      required: [true, 'Please enter a valid amount'],
-      min: [0.01, 'Amount must be greater than 0'],
+      required: [true, "Please enter a valid amount"],
+      min: [0.01, "Amount must be greater than 0"],
     },
     category: {
       type: String,
-      required: [true, 'Please specify an income category'],
-      default: 'Salary',
+      required: [true, "Please specify an income category"],
+      default: "Salary",
     },
     date: {
       type: Date,
@@ -38,20 +38,31 @@ const incomeSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      default: 'bank_transfer',
-      enum: ['bank_transfer', 'cash', 'crypto', 'check', 'credit_card', 'other'],
+      default: "Bank Transfer",
+      enum: [
+        "Bank Transfer",
+        "Credit Card",
+        "Debit Card",
+        "Cash",
+        "PayPal",
+        "UPI",
+        "Apple Pay",
+        "Google Pay",
+        "Cheque",
+        "Other",
+      ],
     },
     notes: {
       type: String,
-      default: '',
+      default: "",
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-incomeSchema.pre('save', function (next) {
+incomeSchema.pre("save", function (next) {
   if (!this.source && this.description) {
     this.source = this.description;
   }
@@ -61,6 +72,6 @@ incomeSchema.pre('save', function (next) {
   next();
 });
 
-const Income = mongoose.models.Income || mongoose.model('Income', incomeSchema);
+const Income = mongoose.models.Income || mongoose.model("Income", incomeSchema);
 
 export default Income;
