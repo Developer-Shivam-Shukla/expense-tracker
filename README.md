@@ -1,20 +1,72 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# 💰 Expense Tracker
 
-# Run and deploy your AI Studio app
+A full-stack **Expense Tracker web application** built to help users manage their personal income and expenses in one place.
 
-This contains everything you need to run your app locally.
+The application allows users to securely create an account, record income and expenses, organize transactions by category, and view an overview of their financial activity through a dashboard.
 
-View your app in AI Studio: https://ai.studio/apps/c7d42e43-acf6-4f34-9a3b-82d018f616d3
+## 🚀 Features
 
-## Run Locally
+- 🔐 User Registration & Login
+- 🔑 Authentication and protected routes
+- 💵 Add, update, and delete income
+- 💸 Add, update, and delete expenses
+- 📊 Financial dashboard and overview
+- 📅 Daily, weekly, monthly, and yearly analysis
+- 🗂️ Categorization of income and expenses
+- 📈 Transaction history
+- 📥 Export income data to Excel
+- ☁️ MongoDB Atlas database
+- 🔒 User-specific financial data
+- 📱 Responsive user interface
 
-**Prerequisites:**  Node.js
+## 🛠️ Tech Stack
 
+### Frontend
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+- React.js
+- JavaScript
+- HTML5
+- CSS3
+- Vite
+
+### Backend
+
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
+- JWT Authentication
+- bcryptjs
+
+### Tools & Services
+
+- VS Code
+- Git & GitHub
+- MongoDB Atlas
+- Postman
+
+## 📁 Project Structure
+
+```text
+ExpenseTracker/
+│
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   ├── package.json
+│   └── ...
+│
+├── backend/
+│   ├── config/
+│   ├── controllers/
+│   ├── middleware/
+│   ├── models/
+│   ├── routers/
+│   ├── utils/
+│   ├── index.js
+│   ├── package.json
+│   └── ...
+│
+├── .gitignore
+└── README.md
+```
