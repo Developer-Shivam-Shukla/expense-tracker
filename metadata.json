@@ -1,0 +1,6 @@
+{
+  "name": "VaultFlow - Expense & Income Tracker",
+  "description": "A modern personal finance and expense management platform with real-time analytics, category breakdowns, savings tracking, and Excel data export.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
