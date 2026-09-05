@@ -143,7 +143,6 @@ export const getAllExpenses = async (req, res, next) => {
 // @route GET /api/expense/summary
 export const getExpenseSummary = async (req, res, next) => {
   try {
-    // Cast req.user._id to Mongoose ObjectId for pipeline query compatibility
     const userId = new mongoose.Types.ObjectId(req.user._id);
     const now = new Date();
     const firstDayOfMonth = new Date(
@@ -190,23 +189,39 @@ export const getExpenseSummary = async (req, res, next) => {
       ]),
     ]);
 
+    const totalExpense = allTimeStats[0]?.totalExpense || 0;
+    const totalCount = allTimeStats[0]?.count || 0;
+    const averageTransaction = allTimeStats[0]?.avgExpense || 0;
+
+    const thisMonthExpense = thisMonthStats[0]?.monthExpense || 0;
+    const thisMonthCount = thisMonthStats[0]?.count || 0;
+
+    // Highest category calculation
+    const topCategory = categoryStats[0];
+
     const summaryPayload = {
-      totalExpense: allTimeStats[0]?.totalExpense || 0,
-      totalCount: allTimeStats[0]?.count || 0,
-      thisMonthExpense: thisMonthStats[0]?.monthExpense || 0,
-      thisMonthCount: thisMonthStats[0]?.count || 0,
-      averageTransaction: allTimeStats[0]?.avgExpense || 0,
+      // Fallback keys so ExpenseStats.jsx receives non-zero values regardless of key name used
+      totalExpense: totalExpense,
+      totalOutflow: totalExpense,
+      thisMonthExpense: thisMonthExpense,
+      totalCount: totalCount,
+      count: totalCount,
+      thisMonthCount: thisMonthCount,
+      averageTransaction: averageTransaction,
+      avgExpense: averageTransaction,
+      highestCategory: topCategory?._id || "N/A",
+      highestCategoryAmount: topCategory?.total || 0,
       categoryBreakdown: categoryStats.map((c) => ({
         category: c._id,
+        name: c._id,
         total: c.total,
         amount: c.total,
+        value: c.total,
         count: c.count,
-      })),
-      byCategory: categoryStats.map((c) => ({
-        category: c._id,
-        total: c.total,
-        amount: c.total,
-        count: c.count,
+        percentage:
+          totalExpense > 0
+            ? Number(((c.total / totalExpense) * 100).toFixed(1))
+            : 0,
       })),
     };
 

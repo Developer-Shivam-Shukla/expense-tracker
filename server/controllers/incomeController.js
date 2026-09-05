@@ -139,7 +139,6 @@ export const getAllIncomes = async (req, res, next) => {
 // @route GET /api/income/summary
 export const getIncomeSummary = async (req, res, next) => {
   try {
-    // Convert string ID to Mongoose ObjectId for pipeline match compatibility
     const userId = new mongoose.Types.ObjectId(req.user._id);
     const now = new Date();
     const firstDayOfMonth = new Date(
@@ -186,23 +185,50 @@ export const getIncomeSummary = async (req, res, next) => {
       ]),
     ]);
 
+    const totalIncome = allTimeStats[0]?.totalIncome || 0;
+    const totalCount = allTimeStats[0]?.count || 0;
+    const averageTransaction = allTimeStats[0]?.avgIncome || 0;
+
+    const thisMonthIncome = thisMonthStats[0]?.monthIncome || 0;
+    const thisMonthCount = thisMonthStats[0]?.count || 0;
+
+    const topCategory = categoryStats[0];
+
     const summaryPayload = {
-      totalIncome: allTimeStats[0]?.totalIncome || 0,
-      totalCount: allTimeStats[0]?.count || 0,
-      thisMonthIncome: thisMonthStats[0]?.monthIncome || 0,
-      thisMonthCount: thisMonthStats[0]?.count || 0,
-      averageTransaction: allTimeStats[0]?.avgIncome || 0,
+      // Direct keys and fallbacks for IncomeStats card props
+      totalIncome: totalIncome,
+      totalInflow: totalIncome,
+      thisMonthIncome: thisMonthIncome,
+      totalCount: totalCount,
+      count: totalCount,
+      thisMonthCount: thisMonthCount,
+      averageTransaction: averageTransaction,
+      avgIncome: averageTransaction,
+      topSource: topCategory?._id || "N/A",
+      topSourceAmount: topCategory?.total || 0,
       categoryBreakdown: categoryStats.map((c) => ({
         category: c._id,
+        name: c._id,
         total: c.total,
         amount: c.total,
+        value: c.total,
         count: c.count,
+        percentage:
+          totalIncome > 0
+            ? Number(((c.total / totalIncome) * 100).toFixed(1))
+            : 0,
       })),
       byCategory: categoryStats.map((c) => ({
         category: c._id,
+        name: c._id,
         total: c.total,
         amount: c.total,
+        value: c.total,
         count: c.count,
+        percentage:
+          totalIncome > 0
+            ? Number(((c.total / totalIncome) * 100).toFixed(1))
+            : 0,
       })),
     };
 
