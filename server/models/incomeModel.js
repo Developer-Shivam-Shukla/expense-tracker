@@ -62,14 +62,14 @@ const incomeSchema = new mongoose.Schema(
   },
 );
 
-incomeSchema.pre("save", function (next) {
+// ✅ Synchronous pre-save hook without 'next' callback
+incomeSchema.pre("save", function () {
   if (!this.source && this.description) {
     this.source = this.description;
   }
   if (!this.description && this.source) {
     this.description = this.source;
   }
-  next();
 });
 
 const Income = mongoose.models.Income || mongoose.model("Income", incomeSchema);
