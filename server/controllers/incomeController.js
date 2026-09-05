@@ -1,4 +1,5 @@
 import XLSX from "xlsx";
+import mongoose from "mongoose";
 import Income from "../models/incomeModel.js";
 
 // @desc Add a new income record
@@ -66,8 +67,8 @@ export const getAllIncomes = async (req, res, next) => {
       search,
       sortBy = "date",
       sortOrder = "desc",
-      limit,
-      page,
+      limit = 20,
+      page = 1,
     } = req.query;
 
     const filter = { userId: req.user._id };
@@ -101,26 +102,32 @@ export const getAllIncomes = async (req, res, next) => {
     const sortOptions = {};
     sortOptions[sortBy] = sortOrder === "asc" ? 1 : -1;
 
-    let query = Income.find(filter).sort(sortOptions);
+    const pageNum = Math.max(1, parseInt(page, 10));
+    const limitNum = Math.max(1, parseInt(limit, 10));
+    const skip = (pageNum - 1) * limitNum;
 
-    if (limit && page) {
-      const pageNum = Math.max(1, parseInt(page, 10));
-      const limitNum = Math.max(1, parseInt(limit, 10));
-      const skip = (pageNum - 1) * limitNum;
-      query = query.skip(skip).limit(limitNum);
-    }
+    const [incomes, totalCount] = await Promise.all([
+      Income.find(filter).sort(sortOptions).skip(skip).limit(limitNum).exec(),
+      Income.countDocuments(filter),
+    ]);
 
-    const incomes = await query.exec();
-    const totalCount = await Income.countDocuments(filter);
-    const totalAmount = incomes.reduce((acc, curr) => acc + curr.amount, 0);
+    const totalPages = Math.ceil(totalCount / limitNum) || 1;
+    const totalAmount = incomes.reduce(
+      (acc, curr) => acc + (curr.amount || 0),
+      0,
+    );
 
+    // ✅ Normalizes response keys to match frontend IncomePage.jsx assumptions
     return res.status(200).json({
       success: true,
       count: incomes.length,
       totalCount,
+      totalPages,
+      currentPage: pageNum,
       totalAmount,
-      data: incomes,
+      records: incomes, // Explicitly map records key for IncomePage list extraction
       incomes,
+      data: incomes,
     });
   } catch (error) {
     console.error("Get incomes error:", error);
@@ -132,9 +139,12 @@ export const getAllIncomes = async (req, res, next) => {
 // @route GET /api/income/summary
 export const getIncomeSummary = async (req, res, next) => {
   try {
-    const userId = req.user._id;
+    // Convert string ID to Mongoose ObjectId for pipeline match compatibility
+    const userId = new mongoose.Types.ObjectId(req.user._id);
     const now = new Date();
-    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const firstDayOfMonth = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0),
+    );
 
     const [allTimeStats, thisMonthStats, categoryStats] = await Promise.all([
       Income.aggregate([
@@ -176,20 +186,30 @@ export const getIncomeSummary = async (req, res, next) => {
       ]),
     ]);
 
+    const summaryPayload = {
+      totalIncome: allTimeStats[0]?.totalIncome || 0,
+      totalCount: allTimeStats[0]?.count || 0,
+      thisMonthIncome: thisMonthStats[0]?.monthIncome || 0,
+      thisMonthCount: thisMonthStats[0]?.count || 0,
+      averageTransaction: allTimeStats[0]?.avgIncome || 0,
+      categoryBreakdown: categoryStats.map((c) => ({
+        category: c._id,
+        total: c.total,
+        amount: c.total,
+        count: c.count,
+      })),
+      byCategory: categoryStats.map((c) => ({
+        category: c._id,
+        total: c.total,
+        amount: c.total,
+        count: c.count,
+      })),
+    };
+
     return res.status(200).json({
       success: true,
-      summary: {
-        totalIncome: allTimeStats[0]?.totalIncome || 0,
-        totalCount: allTimeStats[0]?.count || 0,
-        thisMonthIncome: thisMonthStats[0]?.monthIncome || 0,
-        thisMonthCount: thisMonthStats[0]?.count || 0,
-        averageTransaction: allTimeStats[0]?.avgIncome || 0,
-        byCategory: categoryStats.map((c) => ({
-          category: c._id,
-          total: c.total,
-          count: c.count,
-        })),
-      },
+      data: summaryPayload,
+      summary: summaryPayload,
     });
   } catch (error) {
     console.error("Income summary error:", error);
