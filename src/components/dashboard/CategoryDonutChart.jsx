@@ -1,21 +1,29 @@
-import React from 'react';
-import { formatCurrency } from '../../utils/formatters';
-import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from '../../utils/categories';
+import React from "react";
+import { formatCurrency } from "../../utils/formatters";
+import { INCOME_CATEGORIES, EXPENSE_CATEGORIES } from "../../utils/categories";
 
 export const CategoryDonutChart = ({
   data = [],
-  currency = 'USD',
-  title = 'Category Breakdown',
-  type = 'expense',
+  currency = "USD",
+  title = "Category Breakdown",
+  type = "expense",
 }) => {
-  const total = data.reduce((acc, curr) => acc + curr.total, 0);
+  // Normalize item value checking across total, amount, or value keys
+  const getItemValue = (item) => {
+    const val = Number(item?.total ?? item?.amount ?? item?.value ?? 0);
+    return isNaN(val) ? 0 : val;
+  };
+
+  const total = data.reduce((acc, curr) => acc + getItemValue(curr), 0);
 
   if (data.length === 0 || total === 0) {
     return (
       <div className="bg-[#151517] border border-[#2d2d30] rounded-2xl p-5 shadow-xs flex-1 flex flex-col justify-between">
         <h3 className="text-sm font-bold text-white mb-2">{title}</h3>
         <div className="flex-1 flex flex-col items-center justify-center py-8 text-center">
-          <p className="text-xs text-zinc-500">No transactions recorded for this period</p>
+          <p className="text-xs text-zinc-500">
+            No transactions recorded for this period
+          </p>
         </div>
       </div>
     );
@@ -23,16 +31,33 @@ export const CategoryDonutChart = ({
 
   // Pre-assign distinct colors
   const defaultColors = [
-    '#10b981', '#f43f5e', '#3b82f6', '#f59e0b', '#8b5cf6',
-    '#06b6d4', '#ec4899', '#14b8a6', '#f97316', '#6366f1',
+    "#10b981",
+    "#f43f5e",
+    "#3b82f6",
+    "#f59e0b",
+    "#8b5cf6",
+    "#06b6d4",
+    "#ec4899",
+    "#14b8a6",
+    "#f97316",
+    "#6366f1",
   ];
 
   const enrichedData = data.map((item, index) => {
-    const meta = type === 'income' ? INCOME_CATEGORIES[item.category] : EXPENSE_CATEGORIES[item.category];
+    const categoryName = item.category || item.name || "Other";
+    const itemTotal = getItemValue(item);
+    const meta =
+      type === "income"
+        ? INCOME_CATEGORIES?.[categoryName]
+        : EXPENSE_CATEGORIES?.[categoryName];
+
     const color = meta?.color || defaultColors[index % defaultColors.length];
-    const percentage = total > 0 ? (item.total / total) * 100 : 0;
+    const percentage = total > 0 ? (itemTotal / total) * 100 : 0;
+
     return {
       ...item,
+      category: categoryName,
+      total: itemTotal,
       color,
       percentage,
     };
@@ -51,14 +76,20 @@ export const CategoryDonutChart = ({
       <div className="flex items-center justify-between pb-3 border-b border-[#222224] mb-4">
         <h3 className="text-sm font-bold text-white">{title}</h3>
         <span className="text-xs font-semibold text-zinc-400">
-          Total: <strong className="text-white">{formatCurrency(total, currency)}</strong>
+          Total:{" "}
+          <strong className="text-white">
+            {formatCurrency(total, currency)}
+          </strong>
         </span>
       </div>
 
       <div className="flex flex-col sm:flex-row items-center justify-between gap-6 my-auto">
         {/* SVG Donut */}
         <div className="relative w-40 h-40 shrink-0 flex items-center justify-center">
-          <svg className="w-full h-full transform -rotate-90" viewBox={`0 0 ${size} ${size}`}>
+          <svg
+            className="w-full h-full transform -rotate-90"
+            viewBox={`0 0 ${size} ${size}`}
+          >
             <circle
               cx={size / 2}
               cy={size / 2}
@@ -70,7 +101,10 @@ export const CategoryDonutChart = ({
             />
             {enrichedData.map((item, idx) => {
               const strokeDasharray = `${(item.percentage / 100) * circumference} ${circumference}`;
-              const strokeDashoffset = -((accumulatedPercent / 100) * circumference);
+              const strokeDashoffset = -(
+                (accumulatedPercent / 100) *
+                circumference
+              );
               accumulatedPercent += item.percentage;
 
               return (
@@ -96,9 +130,7 @@ export const CategoryDonutChart = ({
             <span className="text-[11px] font-medium text-zinc-400 uppercase tracking-wider">
               {enrichedData.length} Areas
             </span>
-            <span className="text-xs font-bold text-zinc-100">
-              100%
-            </span>
+            <span className="text-xs font-bold text-zinc-100">100%</span>
           </div>
         </div>
 
@@ -114,7 +146,9 @@ export const CategoryDonutChart = ({
                   className="w-2.5 h-2.5 rounded-full shrink-0"
                   style={{ backgroundColor: item.color }}
                 />
-                <span className="text-zinc-200 font-medium truncate">{item.category}</span>
+                <span className="text-zinc-200 font-medium truncate">
+                  {item.category}
+                </span>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className="font-semibold text-zinc-100">
