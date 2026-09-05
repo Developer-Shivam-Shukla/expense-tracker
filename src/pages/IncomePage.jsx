@@ -1,18 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { incomeApi } from '../api/income';
-import { useAuth } from '../context/AuthContext';
-import { useToast } from '../context/ToastContext';
-import { IncomeStats } from '../components/income/IncomeStats';
-import { IncomeFilters } from '../components/income/IncomeFilters';
-import { IncomeTable } from '../components/income/IncomeTable';
-import { IncomeFormModal } from '../components/income/IncomeFormModal';
-import { ConfirmModal } from '../components/common/ConfirmModal';
-import { TableSkeleton } from '../components/common/Skeleton';
+import React, { useState, useEffect, useCallback } from "react";
+import { incomeApi } from "../api/income";
+import { useAuth } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
+import { IncomeStats } from "../components/income/IncomeStats";
+import { IncomeFilters } from "../components/income/IncomeFilters";
+import { IncomeTable } from "../components/income/IncomeTable";
+import { IncomeFormModal } from "../components/income/IncomeFormModal";
+import { ConfirmModal } from "../components/common/ConfirmModal";
+import { TableSkeleton } from "../components/common/Skeleton";
 
 export const IncomePage = () => {
   const { user } = useAuth();
   const { success, error } = useToast();
-  const currency = user?.currency || 'USD';
+  const currency = user?.currency || "USD";
 
   // Data states
   const [incomes, setIncomes] = useState([]);
@@ -21,12 +21,12 @@ export const IncomePage = () => {
   const [isDownloading, setIsDownloading] = useState(false);
 
   // Filter and pagination states
-  const [search, setSearch] = useState('');
-  const [category, setCategory] = useState('all');
-  const [dateRange, setDateRange] = useState('this-month');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [sort, setSort] = useState('date-desc');
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
+  const [dateRange, setDateRange] = useState("this-month");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [sort, setSort] = useState("date-desc");
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
@@ -37,35 +37,37 @@ export const IncomePage = () => {
   const [deletingIncome, setDeletingIncome] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Calculate actual startDate and endDate based on dateRange preset
+  // Calculate actual startDate and endDate with valid last-day boundaries
   const getDateRangeBounds = useCallback(() => {
-    if (dateRange === 'all') return { start: undefined, end: undefined };
+    if (dateRange === "all") return { start: undefined, end: undefined };
     const now = new Date();
     const curYear = now.getFullYear();
     const curMonth = now.getMonth();
 
-    if (dateRange === 'this-month') {
-      const start = `${curYear}-${String(curMonth + 1).padStart(2, '0')}-01`;
-      const end = `${curYear}-${String(curMonth + 1).padStart(2, '0')}-31`;
+    if (dateRange === "this-month") {
+      const lastDay = new Date(curYear, curMonth + 1, 0).getDate();
+      const start = `${curYear}-${String(curMonth + 1).padStart(2, "0")}-01`;
+      const end = `${curYear}-${String(curMonth + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
       return { start, end };
     }
 
-    if (dateRange === 'last-month') {
+    if (dateRange === "last-month") {
       const prevMonthDate = new Date(curYear, curMonth - 1, 1);
       const pYear = prevMonthDate.getFullYear();
       const pMonth = prevMonthDate.getMonth() + 1;
-      const start = `${pYear}-${String(pMonth).padStart(2, '0')}-01`;
-      const end = `${pYear}-${String(pMonth).padStart(2, '0')}-31`;
+      const lastDay = new Date(pYear, pMonth, 0).getDate();
+      const start = `${pYear}-${String(pMonth).padStart(2, "0")}-01`;
+      const end = `${pYear}-${String(pMonth).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
       return { start, end };
     }
 
-    if (dateRange === 'this-year') {
+    if (dateRange === "this-year") {
       const start = `${curYear}-01-01`;
       const end = `${curYear}-12-31`;
       return { start, end };
     }
 
-    if (dateRange === 'custom') {
+    if (dateRange === "custom") {
       return { start: startDate || undefined, end: endDate || undefined };
     }
 
@@ -79,7 +81,7 @@ export const IncomePage = () => {
     try {
       const queryParams = {
         search: search.trim() || undefined,
-        category: category !== 'all' ? category : undefined,
+        category: category !== "all" ? category : undefined,
         startDate: start,
         endDate: end,
         sort,
@@ -92,13 +94,24 @@ export const IncomePage = () => {
         incomeApi.getIncomeSummary({ startDate: start, endDate: end }),
       ]);
 
-      setIncomes(listRes.records || []);
-      setTotalPages(listRes.totalPages || 1);
-      setTotalCount(listRes.totalCount || 0);
-      setSummary(summaryRes);
+      // Normalize array extraction across varied API response keys
+      const rawList = listRes?.data ?? listRes;
+      const records =
+        rawList?.records ||
+        rawList?.incomes ||
+        rawList?.data ||
+        (Array.isArray(rawList) ? rawList : []);
+
+      const pages = rawList?.totalPages || rawList?.pages || 1;
+      const count = rawList?.totalCount || rawList?.total || records.length;
+
+      setIncomes(records);
+      setTotalPages(pages);
+      setTotalCount(count);
+      setSummary(summaryRes?.data ?? summaryRes);
     } catch (err) {
-      console.error('Failed to load income data:', err);
-      error('Load Error', err?.message || 'Could not fetch income records.');
+      console.error("Failed to load income data:", err);
+      error("Load Error", err?.message || "Could not fetch income records.");
     } finally {
       setIsLoading(false);
     }
@@ -111,11 +124,14 @@ export const IncomePage = () => {
   // Handle Form Submit (Add or Edit)
   const handleFormSubmit = async (formData) => {
     if (editingIncome) {
-      await incomeApi.updateIncome(editingIncome.id, formData);
-      success('Income Updated', `Saved changes to "${formData.description}"`);
+      await incomeApi.updateIncome(
+        editingIncome._id || editingIncome.id,
+        formData,
+      );
+      success("Income Updated", `Saved changes to "${formData.description}"`);
     } else {
       await incomeApi.createIncome(formData);
-      success('Income Recorded', `Added new income of ${formData.description}`);
+      success("Income Recorded", `Added new income of ${formData.description}`);
     }
     setEditingIncome(null);
     loadData();
@@ -126,12 +142,12 @@ export const IncomePage = () => {
     if (!deletingIncome) return;
     setIsDeleting(true);
     try {
-      await incomeApi.deleteIncome(deletingIncome.id);
-      success('Income Deleted', `Deleted "${deletingIncome.description}"`);
+      await incomeApi.deleteIncome(deletingIncome._id || deletingIncome.id);
+      success("Income Deleted", `Deleted "${deletingIncome.description}"`);
       setDeletingIncome(null);
       loadData();
     } catch (err) {
-      error('Delete Error', err?.message || 'Could not delete income entry.');
+      error("Delete Error", err?.message || "Could not delete income entry.");
     } finally {
       setIsDeleting(false);
     }
@@ -145,11 +161,11 @@ export const IncomePage = () => {
       await incomeApi.downloadExcel({
         startDate: start,
         endDate: end,
-        category: category !== 'all' ? category : undefined,
+        category: category !== "all" ? category : undefined,
       });
-      success('Export Complete', 'Income records downloaded as Excel (.xlsx)');
+      success("Export Complete", "Income records downloaded as Excel (.xlsx)");
     } catch (err) {
-      error('Export Error', err?.message || 'Failed to download spreadsheet.');
+      error("Export Error", err?.message || "Failed to download spreadsheet.");
     } finally {
       setIsDownloading(false);
     }
