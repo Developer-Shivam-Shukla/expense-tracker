@@ -1,42 +1,46 @@
-import React, { useState, useEffect } from 'react';
-import { Modal } from '../common/Modal';
-import { INCOME_CATEGORY_LIST, PAYMENT_METHODS } from '../../utils/categories';
-import { CURRENCY_SYMBOLS } from '../../utils/formatters';
+import React, { useState, useEffect } from "react";
+import { Modal } from "../common/Modal";
+import { INCOME_CATEGORY_LIST, PAYMENT_METHODS } from "../../utils/categories";
+import { CURRENCY_SYMBOLS } from "../../utils/formatters";
 
 export const IncomeFormModal = ({
   isOpen,
   onClose,
   onSubmit,
   initialData = null,
-  currency = 'USD',
+  currency = "USD",
 }) => {
   const isEditing = !!initialData;
-  const currencySymbol = CURRENCY_SYMBOLS[currency] || '$';
+  const currencySymbol = CURRENCY_SYMBOLS[currency] || "$";
 
-  const [description, setDescription] = useState('');
-  const [amount, setAmount] = useState('');
-  const [category, setCategory] = useState('Salary');
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [paymentMethod, setPaymentMethod] = useState('Bank Transfer');
-  const [notes, setNotes] = useState('');
+  const [description, setDescription] = useState("");
+  const [amount, setAmount] = useState("");
+  const [category, setCategory] = useState("Salary");
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [paymentMethod, setPaymentMethod] = useState("Bank Transfer");
+  const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     if (initialData) {
-      setDescription(initialData.description || '');
-      setAmount(initialData.amount?.toString() || '');
-      setCategory(initialData.category || 'Salary');
-      setDate(initialData.date || new Date().toISOString().split('T')[0]);
-      setPaymentMethod(initialData.paymentMethod || 'Bank Transfer');
-      setNotes(initialData.notes || '');
+      setDescription(initialData.description || "");
+      setAmount(initialData.amount?.toString() || "");
+      setCategory(initialData.category || "Salary");
+      setDate(
+        initialData.date
+          ? new Date(initialData.date).toISOString().split("T")[0]
+          : new Date().toISOString().split("T")[0],
+      );
+      setPaymentMethod(initialData.paymentMethod || "Bank Transfer");
+      setNotes(initialData.notes || "");
     } else {
-      setDescription('');
-      setAmount('');
-      setCategory('Salary');
-      setDate(new Date().toISOString().split('T')[0]);
-      setPaymentMethod('Bank Transfer');
-      setNotes('');
+      setDescription("");
+      setAmount("");
+      setCategory("Salary");
+      setDate(new Date().toISOString().split("T")[0]);
+      setPaymentMethod("Bank Transfer");
+      setNotes("");
     }
     setError(null);
   }, [initialData, isOpen]);
@@ -46,34 +50,37 @@ export const IncomeFormModal = ({
     setError(null);
 
     if (!description.trim()) {
-      setError('Please enter a description.');
+      setError("Please enter a description.");
       return;
     }
 
     const numAmount = parseFloat(amount);
     if (isNaN(numAmount) || numAmount <= 0) {
-      setError('Please enter a valid positive income amount.');
+      setError("Please enter a valid positive income amount.");
       return;
     }
 
     if (!date) {
-      setError('Please choose a date.');
+      setError("Please choose a date.");
       return;
     }
 
     setIsSubmitting(true);
     try {
+      // Ensure ISO string conversion for MongoDB date aggregation matching
+      const selectedDate = new Date(date);
+
       await onSubmit({
         description: description.trim(),
         amount: numAmount,
         category,
-        date,
+        date: selectedDate.toISOString(),
         paymentMethod,
         notes: notes.trim() || undefined,
       });
       onClose();
     } catch (err) {
-      setError(err?.message || 'Failed to save income record.');
+      setError(err?.message || "Failed to save income record.");
     } finally {
       setIsSubmitting(false);
     }
@@ -83,11 +90,11 @@ export const IncomeFormModal = ({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditing ? 'Edit Income Record' : 'Record New Income'}
+      title={isEditing ? "Edit Income Record" : "Record New Income"}
       description={
         isEditing
-          ? 'Update the details for this income entry.'
-          : 'Log any earnings, salaries, dividends, or freelance payouts.'
+          ? "Update the details for this income entry."
+          : "Log any earnings, salaries, dividends, or freelance payouts."
       }
       maxWidth="md"
     >
@@ -217,12 +224,27 @@ export const IncomeFormModal = ({
             className="px-5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 rounded-xl transition-all shadow-xs flex items-center gap-2 whitespace-nowrap"
           >
             {isSubmitting && (
-              <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              <svg
+                className="animate-spin h-4 w-4 text-white"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
               </svg>
             )}
-            {isEditing ? 'Save Changes' : 'Record Income'}
+            {isEditing ? "Save Changes" : "Record Income"}
           </button>
         </div>
       </form>
