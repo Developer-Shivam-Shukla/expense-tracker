@@ -109,10 +109,11 @@ export const getDashboardOverview = async (req, res, next) => {
     const spendByCategory = Object.keys(categoryMap).map((cat) => ({
       category: cat,
       name: cat,
+      total: categoryMap[cat], // 👈 Fixed: Explicitly add 'total' for CategoryDonutChart
       amount: categoryMap[cat],
       value: categoryMap[cat],
       percentage: thisMonthExpenses > 0 ? Number(((categoryMap[cat] / thisMonthExpenses) * 100).toFixed(1)) : 0,
-    })).sort((a, b) => b.amount - a.amount);
+    })).sort((a, b) => b.total - a.total);
 
     // 6. Recent Transactions
     const formattedIncomes = allIncome.slice(0, 10).map((inc) => ({
@@ -149,7 +150,6 @@ export const getDashboardOverview = async (req, res, next) => {
 
     const monthName = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
 
-    // ✅ Formatted payload to directly match React DashboardPage props
     return res.status(200).json({
       success: true,
       currentMonth: {
@@ -275,8 +275,8 @@ export const resetDemoData = async (req, res, next) => {
     ];
 
     const sampleExpenses = [
+      { category: 'Food & Dining', description: 'Whole Foods Market Groceries', amount: 184.5, paymentMethod: 'Credit Card', date: new Date() },
       { category: 'Housing', description: 'Modern Apartment Rent', amount: 1650, paymentMethod: 'Bank Transfer', date: new Date() },
-      { category: 'Food & Dining', description: 'Whole Foods Market Groceries', amount: 184.5, paymentMethod: 'Credit Card', date: new Date(Date.now() - 3 * 86400000) },
     ];
 
     await Promise.all([
