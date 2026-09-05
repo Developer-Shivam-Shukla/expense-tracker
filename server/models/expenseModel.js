@@ -1,31 +1,31 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const expenseSchema = new mongoose.Schema(
   {
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
       index: true,
     },
     icon: {
       type: String,
-      default: 'CreditCard',
+      default: "CreditCard",
     },
     category: {
       type: String,
-      required: [true, 'Please specify an expense category'],
-      index: true,
+      required: [true, "Please specify an expense category"],
+      trim: true,
     },
     description: {
       type: String,
-      required: [true, 'Please provide an expense description'],
+      required: [true, "Please provide an expense description"],
       trim: true,
     },
     amount: {
       type: Number,
-      required: [true, 'Please enter a valid expense amount'],
-      min: [0.01, 'Amount must be greater than 0'],
+      required: [true, "Please enter a valid amount"],
+      min: [0.01, "Amount must be greater than 0"],
     },
     date: {
       type: Date,
@@ -34,19 +34,38 @@ const expenseSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      default: 'credit_card',
-      enum: ['credit_card', 'debit_card', 'cash', 'bank_transfer', 'crypto', 'other'],
+      default: "Credit Card",
+      enum: [
+        "Bank Transfer",
+        "Credit Card",
+        "Debit Card",
+        "Cash",
+        "PayPal",
+        "UPI",
+        "Apple Pay",
+        "Google Pay",
+        "Cheque",
+        "Other",
+      ],
     },
     notes: {
       type: String,
-      default: '',
+      default: "",
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
-const Expense = mongoose.models.Expense || mongoose.model('Expense', expenseSchema);
+// ✅ Synchronous pre-save hook (NO 'next' callback)
+expenseSchema.pre("save", function () {
+  if (!this.category) {
+    this.category = "Other";
+  }
+});
+
+const Expense =
+  mongoose.models.Expense || mongoose.model("Expense", expenseSchema);
 
 export default Expense;
