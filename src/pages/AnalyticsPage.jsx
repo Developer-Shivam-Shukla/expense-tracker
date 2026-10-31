@@ -20,6 +20,7 @@ export const AnalyticsPage = () => {
     const loadOverview = async () => {
       try {
         const res = await dashboardApi.getOverview();
+        console.log("Analytics API Response:", res); // Check structure in console
         setData(res);
       } catch (err) {
         error("Analytics Error", err?.message || "Failed to load analytics.");
@@ -34,13 +35,21 @@ export const AnalyticsPage = () => {
     return <DashboardSkeleton />;
   }
 
-  // Safe destructuring with fallback defaults
-  const {
-    totalAllTime = { income: 0, expenses: 0, balance: 0 },
-    monthlyTrends = [],
-    spendByCategory = [],
-    incomeByCategory = [],
-  } = data || {};
+  // Fallbacks for data root and sub-objects
+  const totalAllTime = data?.totalAllTime || {
+    income: 0,
+    expenses: 0,
+    balance: 0,
+  };
+  const monthlyTrends = Array.isArray(data?.monthlyTrends)
+    ? data.monthlyTrends
+    : [];
+  const spendByCategory = Array.isArray(data?.spendByCategory)
+    ? data.spendByCategory
+    : [];
+  const incomeByCategory = Array.isArray(data?.incomeByCategory)
+    ? data.incomeByCategory
+    : [];
 
   const handleExportFull = async () => {
     try {
@@ -51,9 +60,9 @@ export const AnalyticsPage = () => {
     }
   };
 
-  const lifetimeIncome = totalAllTime?.income || 0;
-  const lifetimeExpenses = totalAllTime?.expenses || 0;
-  const lifetimeBalance = totalAllTime?.balance || 0;
+  const lifetimeIncome = totalAllTime?.income ?? 0;
+  const lifetimeExpenses = totalAllTime?.expenses ?? 0;
+  const lifetimeBalance = totalAllTime?.balance ?? 0;
 
   return (
     <div className="space-y-6">
@@ -79,7 +88,7 @@ export const AnalyticsPage = () => {
         </button>
       </div>
 
-      {/* Lifetime Wealth & Flow Summary Cards */}
+      {/* Lifetime Wealth Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 bg-[#151517] border border-[#2d2d30] rounded-2xl space-y-1">
           <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
@@ -135,7 +144,7 @@ export const AnalyticsPage = () => {
       {/* 6-Month Trend */}
       <MonthlyTrendChart trends={monthlyTrends} currency={currency} />
 
-      {/* Two-column Donut breakdowns: Expense vs Income */}
+      {/* Expense vs Income Category Breakdowns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CategoryDonutChart
           data={spendByCategory}
@@ -176,29 +185,34 @@ export const AnalyticsPage = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-[#222224]">
-              {monthlyTrends.map((m) => {
-                const savingsRate = m?.savingsRate || 0;
+              {monthlyTrends.map((m, idx) => {
+                const inc = m?.income ?? 0;
+                const exp = m?.expense ?? m?.expenses ?? 0;
+                const sav = m?.savings ?? inc - exp;
+                const savingsRate =
+                  m?.savingsRate ?? (inc > 0 ? (sav / inc) * 100 : 0);
+
                 const isGood = savingsRate >= 20;
                 const isModerate = savingsRate > 0 && savingsRate < 20;
 
                 return (
                   <tr
-                    key={m.monthKey || m.month}
+                    key={m?.monthKey || m?.month || idx}
                     className="hover:bg-white/5 transition-colors"
                   >
                     <td className="py-3.5 px-4 font-semibold text-zinc-200">
-                      {m.month}
+                      {m?.month || "N/A"}
                     </td>
                     <td className="py-3.5 px-4 text-right text-emerald-400 font-medium">
-                      +{formatCurrency(m.income || 0, currency)}
+                      +{formatCurrency(inc, currency)}
                     </td>
                     <td className="py-3.5 px-4 text-right text-rose-400 font-medium">
-                      -{formatCurrency(m.expense || m.expenses || 0, currency)}
+                      -{formatCurrency(exp, currency)}
                     </td>
                     <td
-                      className={`py-3.5 px-4 text-right font-bold ${(m.savings || 0) >= 0 ? "text-zinc-100" : "text-rose-400"}`}
+                      className={`py-3.5 px-4 text-right font-bold ${sav >= 0 ? "text-zinc-100" : "text-rose-400"}`}
                     >
-                      {formatCurrency(m.savings || 0, currency)}
+                      {formatCurrency(sav, currency)}
                     </td>
                     <td className="py-3.5 px-4 text-right text-zinc-300 font-medium">
                       {savingsRate.toFixed(1)}%
