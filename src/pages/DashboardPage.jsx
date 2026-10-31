@@ -19,6 +19,19 @@ import { BudgetProgressCard } from "../components/dashboard/BudgetProgressCard";
 import { RecentTransactionsList } from "../components/dashboard/RecentTransactionsList";
 import { DashboardSkeleton } from "../components/common/Skeleton";
 
+// Helper function to derive category breakdown if backend returns an empty array
+const deriveCategoryBreakdown = (transactions = [], type = "expense") => {
+  const filtered = transactions.filter((t) => (t.type || type) === type);
+  const map = {};
+
+  filtered.forEach((t) => {
+    const cat = t.category || "Other";
+    map[cat] = (map[cat] || 0) + Number(t.amount || t.total || 0);
+  });
+
+  return Object.entries(map).map(([category, total]) => ({ category, total }));
+};
+
 export const DashboardPage = ({
   onNavigate,
   onOpenAddIncome,
@@ -83,15 +96,42 @@ export const DashboardPage = ({
     );
   }
 
-  // Safely destructure with empty object/array fallbacks
+  // Safely destructure root objects
   const {
     currentMonth = {},
     changes = {},
     budgetStatus = {},
-    spendByCategory = [],
     recentTransactions = [],
-    monthlyTrends = [],
   } = data || {};
+
+  const rawTrends = Array.isArray(data?.monthlyTrends)
+    ? data.monthlyTrends
+    : [];
+  const rawRecent = Array.isArray(recentTransactions) ? recentTransactions : [];
+
+  // 1. Normalize monthlyTrends for MonthlyTrendChart
+  const monthlyTrends = rawTrends.map((m) => {
+    const inc = m?.income ?? m?.totalIncome ?? 0;
+    const exp = m?.expenses ?? m?.expense ?? m?.totalExpense ?? 0;
+    const sav = m?.savings ?? inc - exp;
+    const rate = m?.savingsRate ?? (inc > 0 ? (sav / inc) * 100 : 0);
+
+    return {
+      ...m,
+      month: m?.month || m?.monthKey || "N/A",
+      income: inc,
+      expenses: exp,
+      expense: exp,
+      savings: sav,
+      savingsRate: rate,
+    };
+  });
+
+  // 2. Fallback for spendByCategory if backend array is empty
+  const spendByCategory =
+    data?.spendByCategory && data.spendByCategory.length > 0
+      ? data.spendByCategory
+      : deriveCategoryBreakdown(rawRecent, "expense");
 
   return (
     <div className="space-y-6">
