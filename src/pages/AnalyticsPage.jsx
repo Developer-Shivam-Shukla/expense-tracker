@@ -20,7 +20,6 @@ export const AnalyticsPage = () => {
     const loadOverview = async () => {
       try {
         const res = await dashboardApi.getOverview();
-        console.log("Analytics API Response:", res); // Check structure in console
         setData(res);
       } catch (err) {
         error("Analytics Error", err?.message || "Failed to load analytics.");
@@ -35,21 +34,13 @@ export const AnalyticsPage = () => {
     return <DashboardSkeleton />;
   }
 
-  // Fallbacks for data root and sub-objects
-  const totalAllTime = data?.totalAllTime || {
-    income: 0,
-    expenses: 0,
-    balance: 0,
-  };
-  const monthlyTrends = Array.isArray(data?.monthlyTrends)
-    ? data.monthlyTrends
-    : [];
-  const spendByCategory = Array.isArray(data?.spendByCategory)
-    ? data.spendByCategory
-    : [];
-  const incomeByCategory = Array.isArray(data?.incomeByCategory)
-    ? data.incomeByCategory
-    : [];
+  // Destructure totals from backend response
+  const {
+    totals = {},
+    monthlyTrends = [],
+    spendByCategory = [],
+    incomeByCategory = [],
+  } = data || {};
 
   const handleExportFull = async () => {
     try {
@@ -60,9 +51,13 @@ export const AnalyticsPage = () => {
     }
   };
 
-  const lifetimeIncome = totalAllTime?.income ?? 0;
-  const lifetimeExpenses = totalAllTime?.expenses ?? 0;
-  const lifetimeBalance = totalAllTime?.balance ?? 0;
+  // Map backend property names safely
+  const lifetimeIncome = totals?.totalIncome ?? totals?.income ?? 0;
+  const lifetimeExpenses = totals?.totalExpenses ?? totals?.expenses ?? 0;
+  const lifetimeBalance =
+    totals?.totalSavings ??
+    totals?.balance ??
+    lifetimeIncome - lifetimeExpenses;
 
   return (
     <div className="space-y-6">
@@ -141,10 +136,10 @@ export const AnalyticsPage = () => {
         </div>
       </div>
 
-      {/* 6-Month Trend */}
+      {/* 6-Month Trend Chart */}
       <MonthlyTrendChart trends={monthlyTrends} currency={currency} />
 
-      {/* Expense vs Income Category Breakdowns */}
+      {/* Expense vs Income Category Donut Breakdowns */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <CategoryDonutChart
           data={spendByCategory}
