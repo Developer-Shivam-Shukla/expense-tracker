@@ -8,6 +8,19 @@ import { CategoryDonutChart } from "../components/dashboard/CategoryDonutChart";
 import { MonthlyTrendChart } from "../components/dashboard/MonthlyTrendChart";
 import { DashboardSkeleton } from "../components/common/Skeleton";
 
+// Helper function to derive category totals if the backend returns empty arrays
+const deriveCategoryBreakdown = (transactions = [], type = "expense") => {
+  const filtered = transactions.filter((t) => (t.type || type) === type);
+  const map = {};
+
+  filtered.forEach((t) => {
+    const cat = t.category || "Other";
+    map[cat] = (map[cat] || 0) + Number(t.amount || t.total || 0);
+  });
+
+  return Object.entries(map).map(([category, total]) => ({ category, total }));
+};
+
 export const AnalyticsPage = () => {
   const { user } = useAuth();
   const { success, error } = useToast();
@@ -39,14 +52,22 @@ export const AnalyticsPage = () => {
   const rawTrends = Array.isArray(data?.monthlyTrends)
     ? data.monthlyTrends
     : [];
-  const spendByCategory = Array.isArray(data?.spendByCategory)
-    ? data.spendByCategory
-    : [];
-  const incomeByCategory = Array.isArray(data?.incomeByCategory)
-    ? data.incomeByCategory
+  const rawRecent = Array.isArray(data?.recentTransactions)
+    ? data.recentTransactions
     : [];
 
-  // 1. Map Lifetime Values to backend payload keys
+  // Fallback to derived category breakdown if backend array is empty
+  const spendByCategory =
+    data?.spendByCategory && data.spendByCategory.length > 0
+      ? data.spendByCategory
+      : deriveCategoryBreakdown(rawRecent, "expense");
+
+  const incomeByCategory =
+    data?.incomeByCategory && data.incomeByCategory.length > 0
+      ? data.incomeByCategory
+      : deriveCategoryBreakdown(rawRecent, "income");
+
+  // Map Lifetime Values to backend payload keys
   const lifetimeIncome = totals?.totalIncome ?? totals?.income ?? 0;
   const lifetimeExpenses = totals?.totalExpenses ?? totals?.expenses ?? 0;
   const lifetimeBalance =
@@ -54,7 +75,7 @@ export const AnalyticsPage = () => {
     totals?.balance ??
     lifetimeIncome - lifetimeExpenses;
 
-  // 2. Normalize monthlyTrends for both the Chart and Table
+  // Normalize monthlyTrends for both the Chart and Table
   const monthlyTrends = rawTrends.map((m) => {
     const inc = m?.income ?? m?.totalIncome ?? 0;
     const exp = m?.expenses ?? m?.expense ?? m?.totalExpense ?? 0;

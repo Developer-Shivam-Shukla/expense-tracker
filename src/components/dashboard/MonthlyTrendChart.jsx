@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatCurrency, formatCompactCurrency } from '../../utils/formatters';
+import { formatCurrency } from '../../utils/formatters';
 
 export const MonthlyTrendChart = ({
   trends = [],
@@ -7,10 +7,27 @@ export const MonthlyTrendChart = ({
 }) => {
   if (!trends || trends.length === 0) return null;
 
-  // Find max value across income and expense for chart scaling
+  // 1. Convert and sanitize values safely
+  const safeTrends = trends.map((item) => {
+    const inc = Number(item?.income ?? item?.totalIncome) || 0;
+    const exp = Number(item?.expense ?? item?.expenses ?? item?.totalExpense) || 0;
+    const sav = Number(item?.savings) || (inc - exp);
+    const rate = Number(item?.savingsRate) || (inc > 0 ? (sav / inc) * 100 : 0);
+
+    return {
+      ...item,
+      income: inc,
+      expense: exp,
+      savings: sav,
+      savingsRate: rate,
+      month: item?.month || item?.monthKey || 'N/A',
+    };
+  });
+
+  // 2. Find maximum value for scaling across income and expenses
   const maxVal = Math.max(
-    ...trends.map((t) => Math.max(t.income, t.expense)),
-    1000
+    ...safeTrends.flatMap((t) => [t.income, t.expense]),
+    100
   );
 
   return (
@@ -37,25 +54,29 @@ export const MonthlyTrendChart = ({
       {/* Bar visual area */}
       <div className="pt-4 pb-2">
         <div className="grid grid-cols-6 gap-2 sm:gap-4 items-end h-44">
-          {trends.map((item) => {
-            const incomeHeight = maxVal > 0 ? (item.income / maxVal) * 100 : 0;
-            const expenseHeight = maxVal > 0 ? (item.expense / maxVal) * 100 : 0;
+          {safeTrends.map((item, idx) => {
+            const incomeHeight = maxVal > 0 && item.income > 0 ? (item.income / maxVal) * 100 : 0;
+            const expenseHeight = maxVal > 0 && item.expense > 0 ? (item.expense / maxVal) * 100 : 0;
 
             return (
-              <div key={item.monthKey} className="flex flex-col items-center h-full justify-end group">
-                {/* Tooltip trigger area */}
+              <div key={item.monthKey || item.month || idx} className="flex flex-col items-center h-full justify-end group">
+                {/* Bar display */}
                 <div className="relative flex items-end gap-1 sm:gap-1.5 h-full w-full justify-center pb-1">
                   {/* Income bar */}
                   <div
-                    className="w-3 sm:w-5 bg-emerald-600 group-hover:bg-emerald-500 rounded-t-sm transition-all duration-300 relative"
-                    style={{ height: `${Math.max(incomeHeight, 2)}%` }}
+                    className={`w-3 sm:w-5 bg-emerald-600 group-hover:bg-emerald-500 rounded-t-sm transition-all duration-300 relative ${
+                      incomeHeight === 0 ? 'opacity-20' : 'opacity-100'
+                    }`}
+                    style={{ height: `${incomeHeight > 0 ? Math.max(incomeHeight, 4) : 2}%` }}
                     title={`Income: ${formatCurrency(item.income, currency)}`}
                   />
 
                   {/* Expense bar */}
                   <div
-                    className="w-3 sm:w-5 bg-rose-600 group-hover:bg-rose-500 rounded-t-sm transition-all duration-300 relative"
-                    style={{ height: `${Math.max(expenseHeight, 2)}%` }}
+                    className={`w-3 sm:w-5 bg-rose-600 group-hover:bg-rose-500 rounded-t-sm transition-all duration-300 relative ${
+                      expenseHeight === 0 ? 'opacity-20' : 'opacity-100'
+                    }`}
+                    style={{ height: `${expenseHeight > 0 ? Math.max(expenseHeight, 4) : 2}%` }}
                     title={`Expense: ${formatCurrency(item.expense, currency)}`}
                   />
                 </div>
@@ -68,10 +89,16 @@ export const MonthlyTrendChart = ({
                 {/* Savings rate tag */}
                 <span
                   className={`text-[9px] font-bold mt-0.5 ${
-                    item.savings >= 0 ? 'text-emerald-400' : 'text-rose-400'
+                    item.savings >= 0 && (item.income > 0 || item.expense > 0)
+                      ? 'text-emerald-400'
+                      : 'text-rose-400'
                   }`}
                 >
-                  {item.savings >= 0 ? `+${item.savingsRate.toFixed(0)}%` : 'Deficit'}
+                  {item.income === 0 && item.expense === 0
+                    ? '0%'
+                    : item.savings >= 0
+                    ? `+${item.savingsRate.toFixed(0)}%`
+                    : 'Deficit'}
                 </span>
               </div>
             );
